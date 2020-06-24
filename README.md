@@ -1,3 +1,3 @@
-# My_R_Assingments
-A collection of my school work
+# Principle Component Analysis
+A collection of my school and personal projects on PCA
 (R)
