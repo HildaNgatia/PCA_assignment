@@ -1,0 +1,120 @@
+---
+title: "Places"
+author: "Hilda Ngatia"
+date: "20/05/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Use the data to explain, conduct and illustrate the mathematical basis of PCA**  
+
+``` {r}
+places<-read.csv("C:/Users/Folio 9480/Desktop/Class work/Year 1 Sem 2/Multivariate analysis/places.csv", header = TRUE, sep = ",")
+names(places)
+```
+
+The variables represent;  
+a. Climate and Terrain  
+b. Housing  
+c. Health Care & the Environment  
+d. Crime  
+e. Transportation  
+f. Education  
+g. The Arts  
+h. Recreation  
+i. Economics  
+
+My belief is that the data collected by Almanac, Boyer and Savageau in the 329 communities was aimed to determine crime rate based on the variables above.  
+
+We begin by ignoring the crime variable and concentrating on the others i.e; environmental factor (climate and terrain), infrustructure factor (Housing, health care, transportation, education) and economic factor(recreation and economics).  
+
+We transform the data by taking log 10 of the data to remove skewness
+
+``` {r}
+  logCli<-log10(places$Cli) 
+  logHou<-log10(places$Hou) 
+  logHea<-log10(places$Hea) 
+  logTra<-log10(places$Tra) 
+  logEdu<-log10(places$Edu) 
+  logArt<-log10(places$Art) 
+  logRec<-log10(places$Rec) 
+  logEc0<-log10(places$Eco)
+logplaces<-cbind(logCli, logHou, logHea, logTra, logEdu, logArt, logRec, logEc0)
+```
+
+We then plot a pairwise correlation matrix for the transformed data.  
+
+```{r}
+## put histograms on the diagonal
+panel.hist <- function(x, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(usr[1:2], 0, 1.5) )
+    h <- hist(x, plot = FALSE)
+    breaks <- h$breaks; nB <- length(breaks)
+    y <- h$counts; y <- y/max(y)
+    rect(breaks[-nB], 0, breaks[-1], y, col = "magenta", ...)
+}
+pairs(logplaces, panel=panel.smooth, cex= 0.7, pch= 21, bg = "blue", diag.panel = panel.hist, cex.labels = 0.8, font.labels = 1,)
+```
+
+``` {r}
+eigen(cor(logplaces))
+```
+When the components are extracted from the correlation matrix the average is therefore one and components with eigenvalues less than one are therefore excluded. This rule was originally suggested by Kaiser (1958), but Jolliffe (1972), on the basis of a number of simulation studies, proposed that a more appropriate procedure would be to exclude components extracted from a correlation matrix whose associated eigenvalues are less than 0.7.  
+
+These are the principle components as per the results above.  
+
+``` {r}
+logpc<-princomp(logplaces, cor = TRUE)
+```
+``` {r}
+screeplot(logpc, type = "barplot", main = "Proportion of variance explained by each component", col = c(10:22))
+```
+```{r}
+summary(logpc, loadings= TRUE)
+```
+From the results above, the first four principle components account for 78% of the proportion of variance.  
+
+However if we only consider those components whose eigen values are greater than 1, i.e. the first 3 eigen values, the first three componennts will account for approximately 69% of the proportion of variance.  
+
+The first principle component generally describes the "quality of life" since it accounts for all the variables.
+
+The second principle component is lagrely the negation of economics.  
+
+The third component describes two components; Climatic factor of the area and Social factor(Housing and Recreational activities).  
+
+The forth component is largely Education and Economic aspects.  
+
+``` {r}
+par(pty="s")
+plot(logpc$scores[ ,1],logpc$scores[ ,2], ylim=range(logpc$scores[,1]), xlab="PC1",ylab="PC2",type="n",lwd=1, main = "Scatter plot of the first two principle components")
+text(logpc$scores[,1],logpc$scores[,2], labels=(seq(1:329)),cex=0.6,lwd=2)
+```
+
+We now use the 4 component scores for each community to investigate perharps the hypothesis of the data, namely what characteristics of the city are predictive in level of crime in a community?  
+``` {r}
+par(mfrow=c(1,3))
+plot(logpc$scores[,1], log10(places$Cri), xlab = "PC1")
+plot(logpc$scores[,2], log10(places$Cri), xlab = "PC2")
+plot(logpc$scores[,3], log10(places$Cri), xlab = "PC3")
+par(mfrow=c(1,1))
+```
+
+We now plot a model by regressing crime against the first 3 components;  
+
+``` {r}
+crime_model<-lm(log10(places$Cri)~logpc$scores[,1]+logpc$scores[,2]+logpc$scores[,3])
+summary(crime_model)
+```
+
+From the results, the first principle component analysis has a sinificantly low p-value(<0.0001), second and third principle components are significant based on their p-values(<0.05).  
+
+Clearly crime rate is mainly predicted by the first principle component which is interpreted as "the general quality of life". As the general quality of life gets better, the crime rate subsequently increases.  
+
+The second component represents the negation of economic factor and the coefficient estimate is -0.018329 which makes economic factor significant in predicting crime rate in a community. The better the economic status of a community, the lower the crime rate.
+
+The third component is mainly composed of Climatic factor, Housing and Recreational factor. The coefficient estimate is 0.02116; an increase in the quality of climate, housing facilities and recreational facilities, the higher the crime rate.
